@@ -87,7 +87,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     userError: null,
   });
 
-  // 🔐 Subscribe to auth ONLY if auth exists
+  // 🔐 Subscribe to auth ONLY if auth exists (CLIENT ONLY)
   useEffect(() => {
     if (!auth) {
       setUserAuthState({
@@ -126,14 +126,18 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     return () => unsubscribe();
   }, [auth]);
 
+  /* -------------------------------------------------------------- */
+  /* ✅ FIXED CONTEXT VALUE — NEVER EXPOSE PARTIAL SERVICES          */
+  /* -------------------------------------------------------------- */
+
   const contextValue = useMemo<FirebaseContextState>(() => {
     const servicesAvailable = Boolean(firebaseApp && firestore && auth);
 
     return {
       areServicesAvailable: servicesAvailable,
-      firebaseApp,
-      firestore,
-      auth,
+      firebaseApp: servicesAvailable ? firebaseApp : null,
+      firestore: servicesAvailable ? firestore : null,
+      auth: servicesAvailable ? auth : null,
       user: userAuthState.user,
       isUserLoading: userAuthState.isUserLoading,
       userError: userAuthState.userError,
@@ -190,4 +194,4 @@ export function useMemoFirebase<T>(
   }
 
   return memoized;
-};
+}
