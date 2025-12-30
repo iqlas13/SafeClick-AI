@@ -12,7 +12,6 @@ export async function POST(req: Request) {
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
-
     if (!apiKey) {
       return NextResponse.json(
         { error: "Gemini API key missing" },
@@ -20,40 +19,42 @@ export async function POST(req: Request) {
       );
     }
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [
             {
+              role: "user",
               parts: [{ text: message }],
             },
           ],
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 300,
+          },
         }),
       }
     );
 
-    const geminiData = await geminiRes.json();
+    const data = await response.json();
 
-    // 🔍 Robust extraction (handles all Gemini formats)
-    let reply =
-      geminiData?.candidates?.[0]?.content?.parts
+    const reply =
+      data?.candidates?.[0]?.content?.parts
         ?.map((p: any) => p.text)
-        ?.join(" ");
+        ?.join(" ")
+        ?.trim();
 
-    if (!reply || reply.trim() === "") {
-      reply =
-        geminiData?.candidates?.[0]?.content?.text ||
-        "AI responded, but no readable text was returned.";
-    }
+    return NextResponse.json({
+      reply: reply && reply.length > 0
+        ? reply
+        : "AI analysis completed, but no detailed explanation was returned.",
+    });
 
-    return NextResponse.json({ reply });
   } catch (error) {
-    console.error("Gemini API error:", error);
+    console.error("Gemini error:", error);
     return NextResponse.json(
       { error: "AI processing failed" },
       { status: 500 }
