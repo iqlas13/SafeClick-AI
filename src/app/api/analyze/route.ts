@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// ✅ Gemini SDK requires Node.js runtime
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
@@ -14,7 +12,7 @@ export async function POST(req: Request) {
           classification: "UNKNOWN",
           risk_score: 0,
           reasons: ["No valid input provided"],
-          recommendation: "Provide a valid input for analysis.",
+          recommendation: "Provide a valid input.",
         },
         { status: 400 }
       );
@@ -22,29 +20,36 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("❌ GEMINI_API_KEY missing");
       return NextResponse.json(
         {
           classification: "UNKNOWN",
           risk_score: 0,
-          reasons: ["AI service not configured"],
-          recommendation: "Try again later.",
+          reasons: ["GEMINI_API_KEY missing"],
+          recommendation: "Server configuration error.",
         },
         { status: 500 }
       );
     }
 
-    // ✅ FREE-TIER SAFE MODEL
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-    });
-
-    const prompt = `
+    // ✅ DIRECT GEMINI v1 CALL (FREE TIER SAFE)
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: `
 You are a cybersecurity expert.
 
 Return ONLY valid JSON.
-DO NOT include markdown or explanations.
+NO markdown. NO explanation.
 
 FORMAT:
 {
@@ -56,48 +61,52 @@ FORMAT:
 
 INPUT:
 ${message}
-`;
+`,
+                },
+              ],
+            },
+          ],
+        }),
+      }
+    );
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text()?.trim();
+    if (!response.ok) {
+      if (response.status === 429) {
+        return NextResponse.json({
+          classification: "UNKNOWN",
+          risk_score: 0,
+          reasons: ["Free-tier limit reached"],
+          recommendation: "Please try again later.",
+        });
+      }
+
+      throw new Error(`Gemini API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text =
+      data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
     if (!text) {
-      throw new Error("Empty response from Gemini");
+      throw new Error("Empty Gemini response");
     }
 
     // ✅ SAFE JSON EXTRACTION
-    let parsed;
-    try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No JSON found");
-      parsed = JSON.parse(jsonMatch[0]);
-    } catch (err) {
-      console.error("❌ Invalid Gemini JSON:", text);
-      throw err;
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("Invalid JSON returned by Gemini");
     }
 
+    const parsed = JSON.parse(jsonMatch[0]);
     return NextResponse.json(parsed);
-  } catch (error: any) {
+  } catch (error) {
     console.error("🔥 Gemini error:", error);
 
-    // ✅ FREE-TIER RATE LIMIT HANDLING
-    if (error?.status === 429) {
-      return NextResponse.json({
-        classification: "UNKNOWN",
-        risk_score: 0,
-        reasons: ["AI analysis temporarily unavailable (free-tier limit reached)"],
-        recommendation:
-          "Please try again later. This does not mean the content is unsafe.",
-      });
-    }
-
-    // 🔒 GENERAL FAILSAFE
     return NextResponse.json({
       classification: "UNKNOWN",
       risk_score: 0,
       reasons: ["AI analysis failed"],
-      recommendation: "Unable to analyze right now. Verify manually.",
+      recommendation: "Verify manually.",
     });
   }
 }
-
