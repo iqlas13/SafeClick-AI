@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export const runtime = "edge"; // ⚡ Optional but recommended on Vercel
+// ✅ REQUIRED: Gemini works only on Node.js runtime
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // ✅ Official Gemini SDK
+    // ✅ Official Gemini SDK (Node runtime)
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
