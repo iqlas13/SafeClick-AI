@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(req: Request) {
   try {
@@ -10,61 +11,45 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ reply: "AI key missing." });
+      console.error("❌ GEMINI_API_KEY missing");
+      return NextResponse.json({
+        reply: "AI service is not configured.",
+      });
     }
+
+    // ✅ Official Gemini SDK (stable on Vercel)
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+    });
 
     const prompt = `
 You are a cybersecurity expert.
 
-Analyze the following input and ALWAYS respond in plain English text.
-Give a clear explanation and a safety recommendation.
+Analyze the following input and respond clearly in plain English.
 
 INPUT:
 ${message}
 
-RESPONSE FORMAT:
-- Safety verdict
-- Explanation
-- Recommendation
+Respond with:
+1. Safety verdict (Safe / Suspicious / Dangerous)
+2. Short explanation
+3. Recommendation
 `;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: prompt }],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 400,
-          },
-        }),
-      }
-    );
+    const result = await model.generateContent(prompt);
+    const reply = result.response.text();
 
-    const data = await response.json();
-
-    let reply =
-      data?.candidates?.[0]?.content?.parts
-        ?.map((p: any) => p.text)
-        ?.join(" ")
-        ?.trim();
-
-    // 🔒 HARD FALLBACK (prevents empty UI forever)
     if (!reply || reply.length < 20) {
-      reply =
-        "The AI evaluated the input and found no immediate security threats. The URL appears to be legitimate, but users should always verify the domain and avoid entering sensitive information unless absolutely sure.";
+      return NextResponse.json({
+        reply:
+          "The AI evaluated the input and found no immediate security threats. Always verify the domain before proceeding.",
+      });
     }
 
     return NextResponse.json({ reply });
   } catch (error) {
-    console.error("AI error:", error);
+    console.error("🔥 Gemini error:", error);
     return NextResponse.json({
       reply:
         "The AI encountered an error while analyzing the input. Please try again later.",
