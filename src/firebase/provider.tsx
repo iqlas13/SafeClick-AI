@@ -13,7 +13,6 @@ import type { FirebaseApp } from 'firebase/app';
 import type { Firestore } from 'firebase/firestore';
 import type { Auth, User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 /* ---------------------------------------------------------------- */
 /* Types                                                            */
@@ -87,7 +86,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     userError: null,
   });
 
-  // 🔐 Subscribe to auth ONLY if auth exists (CLIENT ONLY)
+  // 🔐 Subscribe to auth ONLY if auth exists
   useEffect(() => {
     if (!auth) {
       setUserAuthState({
@@ -127,7 +126,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   }, [auth]);
 
   /* -------------------------------------------------------------- */
-  /* ✅ FIXED CONTEXT VALUE — NEVER EXPOSE PARTIAL SERVICES          */
+  /* ✅ SAFE CONTEXT — NEVER EXPOSE PARTIAL SERVICES                 */
   /* -------------------------------------------------------------- */
 
   const contextValue = useMemo<FirebaseContextState>(() => {
@@ -146,7 +145,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   return (
     <FirebaseContext.Provider value={contextValue}>
-      <FirebaseErrorListener />
       {children}
     </FirebaseContext.Provider>
   );
