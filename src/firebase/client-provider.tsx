@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode, useEffect, useState } from 'react';
+import { initializeFirebase } from '@/firebase';
 import { FirebaseProvider } from '@/firebase/provider';
 
 interface FirebaseClientProviderProps {
@@ -8,44 +9,18 @@ interface FirebaseClientProviderProps {
 }
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  const [services, setServices] = useState<{
-    firebaseApp: any;
-    auth: any;
-    firestore: any;
-  } | null>(null);
+  const [services, setServices] =
+    useState<ReturnType<typeof initializeFirebase> | null>(null);
 
   useEffect(() => {
-    // 🔒 Ensure client-only execution
-    if (typeof window === 'undefined') return;
-
-    try {
-      // Lazy import to avoid build-time execution
-      const { initializeFirebase } = require('@/firebase');
-      const initialized = initializeFirebase();
-
-      // If Firebase failed silently, don't crash
-      if (
-        !initialized ||
-        !initialized.firebaseApp ||
-        !initialized.auth ||
-        !initialized.firestore
-      ) {
-        console.warn('Firebase initialized with missing services.');
-        setServices(null);
-        return;
-      }
-
-      setServices(initialized);
-    } catch (err) {
-      // ❗ Never throw — build must NEVER fail
-      console.warn('Firebase initialization skipped:', err);
-      setServices(null);
-    }
+    // 🔥 Client-only Firebase initialization
+    const initialized = initializeFirebase();
+    setServices(initialized);
   }, []);
 
-  // ⛔ During build / hydration → render nothing
+  // ⛔ Do NOT render anything until Firebase is ready
   if (!services) {
-    return <>{children}</>;
+    return null;
   }
 
   return (
