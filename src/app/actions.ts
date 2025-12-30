@@ -172,7 +172,7 @@ export async function analyzeMessage(input: {
 }
 
 /* ------------------------------------------------ */
-/* 🤖 CHATBOT (OPTIONAL BACKUP)                     */
+/* 🤖 CHATBOT                                      */
 /* ------------------------------------------------ */
 
 export async function askQuestion(input: { question: string }) {
@@ -185,4 +185,25 @@ export async function askQuestion(input: { question: string }) {
         "I'm having trouble responding right now. Please try again later.",
     };
   }
+}
+
+/* ------------------------------------------------ */
+/* 📰 DAILY BRIEFING (FIX FOR ERROR 1)               */
+/* ------------------------------------------------ */
+
+export async function getDailyBriefing() {
+  return {
+    briefing:
+      "Daily briefing is temporarily unavailable. Stay alert for phishing links, fake login pages, and suspicious messages.",
+  };
+}
+
+/* ------------------------------------------------ */
+/* 🔊 TEXT TO SPEECH (FIX FOR ERROR 1)               */
+/* ------------------------------------------------ */
+
+export async function textToSpeech(text: string) {
+  return {
+    media: null,
+  };
 }
