@@ -1,7 +1,6 @@
 'use client';
 
 import { ReactNode, useEffect, useState } from 'react';
-import { initializeFirebase } from '@/firebase';
 
 export function FirebaseClientProvider({
   children,
@@ -11,13 +10,26 @@ export function FirebaseClientProvider({
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Initialize Firebase only in the browser
-    initializeFirebase();
-    setReady(true);
+    // 🔒 Ensure this NEVER runs on the server
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      // Import lazily to avoid build-time execution
+      const { initializeFirebase } = require('@/firebase');
+      initializeFirebase();
+    } catch (err) {
+      // ❗ Never throw — just warn in dev
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Firebase initialization skipped:', err);
+      }
+    } finally {
+      setReady(true);
+    }
   }, []);
 
-  // 🔥 DO NOT THROW — EVER
-  // During build or hydration, Firebase may not be ready
+  // ⛔ During build / hydration, render nothing
   if (!ready) {
     return null;
   }
