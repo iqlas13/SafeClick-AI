@@ -1,11 +1,23 @@
+export const dynamic = 'force-dynamic';
+
 'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useAuth } from '@/firebase';
 import AuthForm from '@/components/auth-form';
-import { initiateAnonymousSignIn, initiateEmailSignIn, initiateEmailSignUp } from '@/firebase/non-blocking-login';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  initiateAnonymousSignIn,
+  initiateEmailSignIn,
+  initiateEmailSignUp,
+} from '@/firebase/non-blocking-login';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Logo } from '@/components/icons/logo';
@@ -23,8 +35,12 @@ export default function LoginPage() {
     }
   }, [isUserLoading, user, router]);
 
-  const handleAuthAction = (values: AuthFormValues, action: 'login' | 'signup') => {
+  const handleAuthAction = (
+    values: AuthFormValues,
+    action: 'login' | 'signup'
+  ) => {
     if (!auth) return;
+
     if (action === 'login') {
       initiateEmailSignIn(auth, values.email, values.password);
     } else {
@@ -51,22 +67,34 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-transparent px-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-6">
-            <Logo />
+          <Logo />
         </div>
+
         <Card className="glass-card">
           <CardHeader>
             <CardTitle>Welcome to SafeClick AI</CardTitle>
-            <CardDescription>Sign in or create an account to get started.</CardDescription>
+            <CardDescription>
+              Sign in or create an account to get started.
+            </CardDescription>
           </CardHeader>
+
           <CardContent className="space-y-6">
             <AuthForm onAuthAction={handleAuthAction} />
+
             <div className="relative">
               <Separator />
               <div className="absolute inset-x-0 top-1/2 -translate-y-1/2">
-                <span className="bg-card px-2 text-sm text-muted-foreground mx-auto flex w-min">OR</span>
+                <span className="bg-card px-2 text-sm text-muted-foreground mx-auto flex w-min">
+                  OR
+                </span>
               </div>
             </div>
-            <Button variant="secondary" className="w-full" onClick={handleAnonymousSignIn}>
+
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={handleAnonymousSignIn}
+            >
               <User className="mr-2 h-4 w-4" />
               Continue Anonymously
             </Button>
@@ -76,3 +104,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
