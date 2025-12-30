@@ -1,23 +1,33 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+export const runtime = "edge"; // ⚡ Optional but recommended on Vercel
+
 export async function POST(req: Request) {
   try {
     const { message } = await req.json();
 
     if (!message) {
-      return NextResponse.json({ reply: "No input provided." });
+      return NextResponse.json({
+        classification: "SUSPICIOUS",
+        risk_score: 50,
+        reasons: ["No input provided"],
+        recommendation: "Provide a valid input for analysis.",
+      });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.error("❌ GEMINI_API_KEY missing");
       return NextResponse.json({
-        reply: "AI service is not configured.",
+        classification: "SUSPICIOUS",
+        risk_score: 60,
+        reasons: ["AI service not configured"],
+        recommendation: "Try again later.",
       });
     }
 
-    // ✅ Official Gemini SDK (stable on Vercel)
+    // ✅ Official Gemini SDK
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
@@ -26,33 +36,41 @@ export async function POST(req: Request) {
     const prompt = `
 You are a cybersecurity expert.
 
-Analyze the following input and respond clearly in plain English.
+Return ONLY valid JSON.
+DO NOT include markdown or extra text.
+
+FORMAT:
+{
+  "classification": "SAFE | SUSPICIOUS | MALICIOUS",
+  "risk_score": number (0-100),
+  "reasons": string[],
+  "recommendation": string
+}
 
 INPUT:
 ${message}
-
-Respond with:
-1. Safety verdict (Safe / Suspicious / Dangerous)
-2. Short explanation
-3. Recommendation
 `;
 
     const result = await model.generateContent(prompt);
-    const reply = result.response.text();
+    const rawText = result.response.text()?.trim();
 
-    if (!reply || reply.length < 20) {
-      return NextResponse.json({
-        reply:
-          "The AI evaluated the input and found no immediate security threats. Always verify the domain before proceeding.",
-      });
+    if (!rawText) {
+      throw new Error("Empty AI response");
     }
 
-    return NextResponse.json({ reply });
+    // 🔐 Parse Gemini JSON safely
+    const parsed = JSON.parse(rawText);
+
+    return NextResponse.json(parsed);
   } catch (error) {
     console.error("🔥 Gemini error:", error);
+
+    // 🔒 HARD FAILSAFE (UI NEVER BREAKS)
     return NextResponse.json({
-      reply:
-        "The AI encountered an error while analyzing the input. Please try again later.",
+      classification: "SUSPICIOUS",
+      risk_score: 60,
+      reasons: ["AI analysis failed or invalid response"],
+      recommendation: "Proceed with caution and verify manually.",
     });
   }
 }
