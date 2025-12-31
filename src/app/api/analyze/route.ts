@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 export const runtime = "nodejs";
 
@@ -7,75 +7,60 @@ export async function POST(req: Request) {
   try {
     const { message } = await req.json();
 
-    if (!message || typeof message !== "string") {
-      return NextResponse.json(
+    if (!message) {
+      return NextResponse.json({ error: "No input provided" }, { status: 400 });
+    }
+
+    // Initialize with the new SDK
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+
+    // Configuration from your snippet
+    const config = {
+      thinkingConfig: {
+        thinkingLevel: 'HIGH', // Enables the deep reasoning you saw in AI Studio
+      },
+      systemInstruction: [
         {
-          classification: "UNKNOWN",
-          risk_score: 0,
-          reasons: ["No valid input provided"],
-          recommendation: "Provide a valid input.",
-        },
-        { status: 400 }
-      );
-    }
+          text: `You are a cybersecurity expert. Your job is to analyze URLs for potential risks.
+          CRITICAL RULES:
+          Return ONLY valid JSON.
+          Do NOT include markdown formatting like \` \` \` json.
+          Do NOT provide any explanations outside of the JSON object.
+          FORMAT:
+          {
+            "classification": "SAFE | SUSPICIOUS | MALICIOUS",
+            "risk_score": number,
+            "reasons": string[],
+            "recommendation": string
+          }`
+        }
+      ],
+      // Force JSON output to prevent parsing errors
+      responseMimeType: "application/json" 
+    };
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.error("❌ GEMINI_API_KEY is missing from environment variables");
-      return NextResponse.json(
-        {
-          classification: "UNKNOWN",
-          risk_score: 0,
-          reasons: ["Server configuration error"],
-          recommendation: "Check API keys.",
-        },
-        { status: 500 }
-      );
-    }
+    // Use the specific model from your snippet
+    const model = 'gemini-3-pro-preview'; 
 
-    const model = genAI.getGenerativeModel({
-  // Use the exact ID shown in your Playground sidebar
-  model: "gemini-3-flash-preview", 
-  generationConfig: {
-    responseMimeType: "application/json",
-  },
-});
+    const result = await ai.models.generateContent({
+      model,
+      config,
+      contents: [{ role: 'user', parts: [{ text: message }] }],
+    });
 
-    const prompt = `
-      You are a cybersecurity expert analyzing the following input for potential security risks: "${message}"
+    // Parse and return the response
+    const outputText = result.text;
+    const parsedData = JSON.parse(outputText);
 
-      Analyze the input and return a JSON object with this exact structure:
-      {
-        "classification": "SAFE" | "SUSPICIOUS" | "MALICIOUS",
-        "risk_score": number (0-100),
-        "reasons": ["reason 1", "reason 2"],
-        "recommendation": "string"
-      }
-    `;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
-    if (!text) {
-      throw new Error("Gemini returned an empty response.");
-    }
-
-    // Since we used responseMimeType: "application/json", 
-    // we can parse it directly without regex.
-    const parsed = JSON.parse(text);
-
-    return NextResponse.json(parsed);
+    return NextResponse.json(parsedData);
 
   } catch (error: any) {
-    // Check if it's a 404/Authentication error
-    console.error("🔥 Gemini API Error Detailed:", error);
-
+    console.error("🔥 Gemini API Error:", error);
     return NextResponse.json({
       classification: "ERROR",
-      risk_score: 0,
-      reasons: [error.message || "AI analysis failed"],
-      recommendation: "Please try again later or check API quota.",
+      reasons: [error.message || "Failed to analyze URL"],
     }, { status: 500 });
   }
 }
