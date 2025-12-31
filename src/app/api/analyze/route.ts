@@ -34,8 +34,8 @@ export async function POST(req: Request) {
     }
 
     const model = genAI.getGenerativeModel({
-  // Use 'gemini-2.5-flash' (current stable) or 'gemini-3-flash-preview' (latest)
-  model: "gemini-2.5-flash", 
+  // Use the exact ID shown in your Playground sidebar
+  model: "gemini-3-flash-preview", 
   generationConfig: {
     responseMimeType: "application/json",
   },
