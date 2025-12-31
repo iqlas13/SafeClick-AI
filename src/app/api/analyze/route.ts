@@ -32,7 +32,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ OFFICIAL SDK — NO 404, NO ENDPOINT ISSUES
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
@@ -59,22 +58,14 @@ ${message}
     const result = await model.generateContent(prompt);
     const text = result.response.text();
 
-    if (!text || text.length < 20) {
-      throw new Error("Empty Gemini response");
-    }
+    if (!text) throw new Error("Empty Gemini response");
 
-    // ✅ Extract JSON safely
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("Invalid JSON returned by Gemini");
-    }
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("Invalid JSON");
 
-    const parsed = JSON.parse(jsonMatch[0]);
-
-    return NextResponse.json(parsed);
+    return NextResponse.json(JSON.parse(match[0]));
   } catch (error) {
     console.error("🔥 Gemini error:", error);
-
     return NextResponse.json({
       classification: "UNKNOWN",
       risk_score: 0,
