@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
 export const runtime = "nodejs";
 
@@ -21,65 +21,64 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
+      console.error("❌ GEMINI_API_KEY is missing from environment variables");
       return NextResponse.json(
         {
           classification: "UNKNOWN",
           risk_score: 0,
-          reasons: ["GEMINI_API_KEY missing"],
-          recommendation: "Server configuration error.",
+          reasons: ["Server configuration error"],
+          recommendation: "Check API keys.",
         },
         { status: 500 }
       );
     }
 
-    // ✅ OFFICIAL SDK — NO 404, NO ENDPOINT ISSUES
     const genAI = new GoogleGenerativeAI(apiKey);
+    
+    // ✅ Use generationConfig to FORCE JSON output
+    // This prevents the AI from adding "```json" blocks or extra text
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+      },
     });
 
     const prompt = `
-You are a cybersecurity expert.
+      You are a cybersecurity expert analyzing the following input for potential security risks: "${message}"
 
-Return ONLY valid JSON.
-NO markdown. NO explanation.
-
-FORMAT:
-{
-  "classification": "SAFE | SUSPICIOUS | MALICIOUS",
-  "risk_score": number (0-100),
-  "reasons": string[],
-  "recommendation": string
-}
-
-INPUT:
-${message}
-`;
+      Analyze the input and return a JSON object with this exact structure:
+      {
+        "classification": "SAFE" | "SUSPICIOUS" | "MALICIOUS",
+        "risk_score": number (0-100),
+        "reasons": ["reason 1", "reason 2"],
+        "recommendation": "string"
+      }
+    `;
 
     const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const response = await result.response;
+    const text = response.text();
 
-    if (!text || text.length < 20) {
-      throw new Error("Empty Gemini response");
+    if (!text) {
+      throw new Error("Gemini returned an empty response.");
     }
 
-    // ✅ Extract JSON safely
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("Invalid JSON returned by Gemini");
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]);
+    // Since we used responseMimeType: "application/json", 
+    // we can parse it directly without regex.
+    const parsed = JSON.parse(text);
 
     return NextResponse.json(parsed);
-  } catch (error) {
-    console.error("🔥 Gemini error:", error);
+
+  } catch (error: any) {
+    // Check if it's a 404/Authentication error
+    console.error("🔥 Gemini API Error Detailed:", error);
 
     return NextResponse.json({
-      classification: "UNKNOWN",
+      classification: "ERROR",
       risk_score: 0,
-      reasons: ["AI analysis failed"],
-      recommendation: "Verify manually.",
-    });
+      reasons: [error.message || "AI analysis failed"],
+      recommendation: "Please try again later or check API quota.",
+    }, { status: 500 });
   }
 }
