@@ -55,17 +55,6 @@ It combines **advanced AI-driven analysis** with **rule-based fallback security 
 
 ---
 
-## ⚙️ Getting Started (Local Setup)
-
-### Clone the repository
-```bash
-git clone https://github.com/iqlas13/SafeClick-AI.git
-cd SafeClick-AI
-
-##🎯 Project Goal
-
-SafeClick AI aims to make cybersecurity accessible to everyone by providing a simple, AI-powered platform to identify online threats without requiring technical expertise.
-
 ##👥 Team Members / Authors
 
 Iqlas Tharannum
