@@ -5,48 +5,48 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    const { message } = await req.json();
+    // ✅ 1. Parse request body safely
+    const body = await req.json();
+    const message = body?.message;
 
-    if (!message) {
+    if (!message || typeof message !== "string") {
       return NextResponse.json(
-        { error: "Message is required" },
+        { error: "Message (URL/text) is required" },
         { status: 400 }
       );
     }
 
+    // ✅ 2. Check API key
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("❌ GEMINI_API_KEY is missing from environment variables");
+      console.error("❌ GEMINI_API_KEY missing");
       return NextResponse.json(
         { error: "Server configuration error" },
         { status: 500 }
       );
     }
 
-    // Initialize the new SDK
+    // ✅ 3. Initialize Gemini
     const ai = new GoogleGenAI({ apiKey });
 
-    /**
-     * ✅ OPTION A: Using Gemini 3 (Supports thinkingLevel)
-     * Use "gemini-3-flash-preview" or "gemini-3-pro-preview"
-     */
-    const activeModel = "gemini-3-flash-preview";
+    const model = "gemini-3-flash-preview";
 
+    // ✅ 4. Call Gemini
     const result = await ai.models.generateContent({
-      model: activeModel, // Fixed: variable name must match the model string
+      model,
       config: {
         responseMimeType: "application/json",
-        // thinkingLevel is ONLY for gemini-3 models
-        thinkingConfig: { thinkingLevel: "LOW" }, 
+        thinkingConfig: { thinkingLevel: "LOW" },
         systemInstruction: [
           {
             text:
-              "You are a cybersecurity expert. Analyze the URL or text for risks. " +
-              "Return ONLY valid JSON in this format: " +
-              "{ \"classification\": \"string\", \"risk_score\": number, \"reasons\": [], \"recommendation\": \"string\" }"
+              "You are a cybersecurity expert. " +
+              "Analyze the given URL or text for security risks. " +
+              "Return ONLY valid raw JSON (no markdown, no explanation) in this format:\n" +
+              "{ \"classification\": \"SAFE | SUSPICIOUS | DANGEROUS\", \"risk_score\": number, \"reasons\": string[], \"recommendation\": \"string\" }"
           }
         ]
-      } as any,
+      },
       contents: [
         {
           role: "user",
@@ -55,41 +55,54 @@ export async function POST(req: Request) {
       ]
     });
 
-    // Extract text from the new SDK response structure
-    const responseText = result.text;
-    
+    // ✅ 5. Extract response text safely
+    const responseText = result?.text;
+
+    console.log("🧠 Raw AI Response:", responseText);
+
     if (!responseText) {
-      throw new Error("Gemini returned an empty response.");
+      throw new Error("Gemini returned an empty response");
     }
 
-    // Clean text in case of markdown artifacts and parse
-    const cleanJson = responseText.replace(/```json|```/g, "").trim();
-    return NextResponse.json(JSON.parse(cleanJson));
+    // ✅ 6. Clean & parse JSON defensively
+    const cleaned = responseText
+      .replace(/```json/gi, "")
+      .replace(/```/g, "")
+      .trim();
+
+    const parsed = JSON.parse(cleaned);
+
+    // ✅ 7. Validate expected shape (VERY IMPORTANT)
+    if (
+      typeof parsed !== "object" ||
+      !parsed.classification ||
+      typeof parsed.risk_score !== "number"
+    ) {
+      throw new Error("Invalid JSON structure returned by AI");
+    }
+
+    // ✅ 8. Always return proper JSON
+    return NextResponse.json(parsed, { status: 200 });
 
   } catch (error: any) {
     console.error("🔥 Analyze API Error:", error);
 
-    // Specific handling for common API errors
-    const statusCode = error?.status || 500;
-    
+    const statusCode = error?.status ?? 500;
+
+    // Rate limit
     if (statusCode === 429) {
       return NextResponse.json(
-        { error: "Rate limit reached. Please wait a few minutes before trying again." },
+        { error: "Rate limit reached. Please try again later." },
         { status: 429 }
-      );
-    }
-
-    if (statusCode === 400 && error.message.includes("Thinking level")) {
-      return NextResponse.json(
-        { error: "Model configuration mismatch. Please check thinkingLevel support." },
-        { status: 400 }
       );
     }
 
     return NextResponse.json(
       {
         classification: "ERROR",
-        reasons: [error.message || "An unexpected error occurred during analysis."]
+        risk_score: 100,
+        reasons: [error?.message || "AI analysis failed"],
+        recommendation: "Please try again later."
       },
       { status: statusCode }
     );
