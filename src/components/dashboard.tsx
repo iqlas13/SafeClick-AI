@@ -33,7 +33,7 @@ export default function Dashboard() {
 
   const [isBotReplying, setIsBotReplying] = useState(false);
 
-  /* ---------------- COMMON API CALL ---------------- */
+  /* ---------- API CALL ---------- */
 
   const analyzeViaAPI = async (text: string): Promise<AnyAnalysis> => {
     const res = await fetch('/api/analyze', {
@@ -45,20 +45,19 @@ export default function Dashboard() {
     const data = await res.json();
 
     if (!res.ok || data.error) {
-      throw new Error(data.error || 'AI analysis failed');
+      throw new Error(data.error || 'Analysis failed');
     }
 
     return data;
   };
 
-  /* ---------------- URL / EMAIL / MESSAGE ---------------- */
+  /* ---------- URL / EMAIL / MESSAGE ---------- */
 
   const handleAnalyzeUrl = async (url: string) => {
     try {
       setIsLoadingAnalysis(true);
       setAnalysis(null);
-      const result = await analyzeViaAPI(url);
-      setAnalysis(result);
+      setAnalysis(await analyzeViaAPI(url));
     } catch {
       setAnalysis({
         classification: 'SUSPICIOUS',
@@ -75,8 +74,7 @@ export default function Dashboard() {
     try {
       setIsLoadingAnalysis(true);
       setAnalysis(null);
-      const result = await analyzeViaAPI(email);
-      setAnalysis(result);
+      setAnalysis(await analyzeViaAPI(email));
     } catch {
       setAnalysis({
         classification: 'SUSPICIOUS',
@@ -93,8 +91,7 @@ export default function Dashboard() {
     try {
       setIsLoadingAnalysis(true);
       setAnalysis(null);
-      const result = await analyzeViaAPI(message);
-      setAnalysis(result);
+      setAnalysis(await analyzeViaAPI(message));
     } catch {
       setAnalysis({
         classification: 'SUSPICIOUS',
@@ -107,29 +104,29 @@ export default function Dashboard() {
     }
   };
 
-  /* ---------------- CHATBOT ---------------- */
+  /* ---------- CHAT ---------- */
 
   const handleSendMessage = async (content: string, photoDataUri?: string) => {
-    const userMessage: ChatMessage = {
+    const userMsg: ChatMessage = {
       id: `msg-${messageIdCounter++}`,
       role: 'user',
       content,
       photoDataUri,
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMsg]);
     setIsBotReplying(true);
 
     try {
-      const data = await analyzeViaAPI(content);
-
-      const botMessage: ChatMessage = {
-        id: `msg-${messageIdCounter++}`,
-        role: 'model',
-        content: data.recommendation || 'Analysis completed.',
-      };
-
-      setMessages((prev) => [...prev, botMessage]);
+      const result = await analyzeViaAPI(content);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-${messageIdCounter++}`,
+          role: 'model',
+          content: result.recommendation || 'Analysis completed.',
+        },
+      ]);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -144,7 +141,7 @@ export default function Dashboard() {
     }
   };
 
-  /* ---------------- UI ---------------- */
+  /* ---------- UI ---------- */
 
   return (
     <div className="flex flex-col gap-8">
@@ -155,61 +152,37 @@ export default function Dashboard() {
           <div className="p-6">
             <Tabs
               defaultValue="url"
-              onValueChange={(value) => setCurrentTab(value as AnalysisType)}
-              className="w-full"
+              onValueChange={(v) => setCurrentTab(v as AnalysisType)}
             >
-              <TabsList className="grid w-full grid-cols-3 bg-background/50 mb-6">
+              <TabsList className="grid grid-cols-3 mb-6">
                 <TabsTrigger value="url">URL</TabsTrigger>
                 <TabsTrigger value="email">Email</TabsTrigger>
                 <TabsTrigger value="message">Message</TabsTrigger>
               </TabsList>
 
               <TabsContent value="url">
-                <UrlAnalyzer
-                  onAnalyze={handleAnalyzeUrl}
-                  isLoading={isLoadingAnalysis}
-                />
+                <UrlAnalyzer onAnalyze={handleAnalyzeUrl} isLoading={isLoadingAnalysis} />
               </TabsContent>
 
               <TabsContent value="email">
-                <EmailAnalyzer
-                  onAnalyze={handleAnalyzeEmail}
-                  isLoading={isLoadingAnalysis}
-                />
+                <EmailAnalyzer onAnalyze={handleAnalyzeEmail} isLoading={isLoadingAnalysis} />
               </TabsContent>
 
               <TabsContent value="message">
-                <MessageAnalyzer
-                  onAnalyze={handleAnalyzeMessage}
-                  isLoading={isLoadingAnalysis}
-                />
+                <MessageAnalyzer onAnalyze={handleAnalyzeMessage} isLoading={isLoadingAnalysis} />
               </TabsContent>
             </Tabs>
           </div>
 
           <div className="relative p-6">
-            <Separator
-              orientation="vertical"
-              className="absolute left-0 top-0 h-full hidden lg:block"
-            />
-            <Separator
-              orientation="horizontal"
-              className="absolute top-0 left-0 w-full lg:hidden"
-            />
-            <AnalysisResult
-              analysis={analysis}
-              isLoading={isLoadingAnalysis}
-              analysisType={currentTab}
-            />
+            <Separator orientation="vertical" className="absolute left-0 top-0 h-full hidden lg:block" />
+            <Separator orientation="horizontal" className="absolute top-0 left-0 w-full lg:hidden" />
+            <AnalysisResult analysis={analysis} isLoading={isLoadingAnalysis} analysisType={currentTab} />
           </div>
         </CardContent>
       </Card>
 
-      <Chatbot
-        messages={messages}
-        onSendMessage={handleSendMessage}
-        isBotReplying={isBotReplying}
-      />
+      <Chatbot messages={messages} onSendMessage={handleSendMessage} isBotReplying={isBotReplying} />
     </div>
   );
 }
