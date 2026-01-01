@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    // ✅ 1. Parse request body safely
+    // 1️⃣ Parse request body
     const body = await req.json();
     const message = body?.message;
 
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ 2. Check API key
+    // 2️⃣ Check API key
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.error("❌ GEMINI_API_KEY missing");
@@ -26,26 +26,20 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ 3. Initialize Gemini
+    // 3️⃣ Initialize Gemini
     const ai = new GoogleGenAI({ apiKey });
-
     const model = "gemini-3-flash-preview";
 
-    // ✅ 4. Call Gemini
+    // 4️⃣ Call Gemini (FIXED)
     const result = await ai.models.generateContent({
       model,
       config: {
         responseMimeType: "application/json",
-        thinkingConfig: { thinkingLevel: "LOW" },
-        systemInstruction: [
-          {
-            text:
-              "You are a cybersecurity expert. " +
-              "Analyze the given URL or text for security risks. " +
-              "Return ONLY valid raw JSON (no markdown, no explanation) in this format:\n" +
-              "{ \"classification\": \"SAFE | SUSPICIOUS | DANGEROUS\", \"risk_score\": number, \"reasons\": string[], \"recommendation\": \"string\" }"
-          }
-        ]
+        systemInstruction:
+          "You are a cybersecurity expert. " +
+          "Analyze the given URL or text for security risks. " +
+          "Return ONLY valid raw JSON (no markdown, no explanation) in this format:\n" +
+          '{ "classification": "SAFE | SUSPICIOUS | DANGEROUS", "risk_score": number, "reasons": string[], "recommendation": "string" }'
       },
       contents: [
         {
@@ -55,16 +49,15 @@ export async function POST(req: Request) {
       ]
     });
 
-    // ✅ 5. Extract response text safely
+    // 5️⃣ Extract response text
     const responseText = result?.text;
-
     console.log("🧠 Raw AI Response:", responseText);
 
     if (!responseText) {
       throw new Error("Gemini returned an empty response");
     }
 
-    // ✅ 6. Clean & parse JSON defensively
+    // 6️⃣ Clean & parse JSON safely
     const cleaned = responseText
       .replace(/```json/gi, "")
       .replace(/```/g, "")
@@ -72,7 +65,7 @@ export async function POST(req: Request) {
 
     const parsed = JSON.parse(cleaned);
 
-    // ✅ 7. Validate expected shape (VERY IMPORTANT)
+    // 7️⃣ Validate structure
     if (
       typeof parsed !== "object" ||
       !parsed.classification ||
@@ -81,16 +74,13 @@ export async function POST(req: Request) {
       throw new Error("Invalid JSON structure returned by AI");
     }
 
-    // ✅ 8. Always return proper JSON
+    // 8️⃣ Return final response
     return NextResponse.json(parsed, { status: 200 });
 
   } catch (error: any) {
     console.error("🔥 Analyze API Error:", error);
 
-    const statusCode = error?.status ?? 500;
-
-    // Rate limit
-    if (statusCode === 429) {
+    if (error?.status === 429) {
       return NextResponse.json(
         { error: "Rate limit reached. Please try again later." },
         { status: 429 }
@@ -104,7 +94,7 @@ export async function POST(req: Request) {
         reasons: [error?.message || "AI analysis failed"],
         recommendation: "Please try again later."
       },
-      { status: statusCode }
+      { status: 500 }
     );
   }
 }
