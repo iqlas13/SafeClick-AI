@@ -33,15 +33,13 @@ export default function Dashboard() {
 
   const [isBotReplying, setIsBotReplying] = useState(false);
 
-  /* ---------------- COMMON ANALYSIS CALL (API ROUTE) ---------------- */
+  /* ---------------- COMMON API CALL ---------------- */
 
-  const callAnalyzeAPI = async (message: string) => {
+  const analyzeViaAPI = async (text: string): Promise<AnyAnalysis> => {
     const res = await fetch('/api/analyze', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ message }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text }),
     });
 
     const data = await res.json();
@@ -53,87 +51,82 @@ export default function Dashboard() {
     return data;
   };
 
-  /* ---------------- URL / EMAIL / MESSAGE ANALYSIS ---------------- */
+  /* ---------------- URL / EMAIL / MESSAGE ---------------- */
 
-  const handleAnalyzeUrl = async (urlToAnalyze: string) => {
+  const handleAnalyzeUrl = async (url: string) => {
     try {
       setIsLoadingAnalysis(true);
       setAnalysis(null);
-
-      const result = await callAnalyzeAPI(urlToAnalyze);
+      const result = await analyzeViaAPI(url);
       setAnalysis(result);
-    } catch (err) {
+    } catch {
       setAnalysis({
-        classification: 'ERROR',
+        classification: 'SUSPICIOUS',
         risk_score: 100,
         reasons: ['Failed to analyze URL'],
         recommendation: 'Please try again later.',
-      } as AnyAnalysis);
+      });
     } finally {
       setIsLoadingAnalysis(false);
     }
   };
 
-  const handleAnalyzeEmail = async (emailContent: string) => {
+  const handleAnalyzeEmail = async (email: string) => {
     try {
       setIsLoadingAnalysis(true);
       setAnalysis(null);
-
-      const result = await callAnalyzeAPI(emailContent);
+      const result = await analyzeViaAPI(email);
       setAnalysis(result);
-    } catch (err) {
+    } catch {
       setAnalysis({
-        classification: 'ERROR',
+        classification: 'SUSPICIOUS',
         risk_score: 100,
         reasons: ['Failed to analyze email'],
         recommendation: 'Please try again later.',
-      } as AnyAnalysis);
+      });
     } finally {
       setIsLoadingAnalysis(false);
     }
   };
 
-  const handleAnalyzeMessage = async (messageContent: string) => {
+  const handleAnalyzeMessage = async (message: string) => {
     try {
       setIsLoadingAnalysis(true);
       setAnalysis(null);
-
-      const result = await callAnalyzeAPI(messageContent);
+      const result = await analyzeViaAPI(message);
       setAnalysis(result);
-    } catch (err) {
+    } catch {
       setAnalysis({
-        classification: 'ERROR',
+        classification: 'SUSPICIOUS',
         risk_score: 100,
         reasons: ['Failed to analyze message'],
         recommendation: 'Please try again later.',
-      } as AnyAnalysis);
+      });
     } finally {
       setIsLoadingAnalysis(false);
     }
   };
 
-  /* ---------------- CHATBOT (API ROUTE) ---------------- */
+  /* ---------------- CHATBOT ---------------- */
 
-  const handleSendMessage = async (content: string) => {
-    const newUserMessage: ChatMessage = {
+  const handleSendMessage = async (content: string, photoDataUri?: string) => {
+    const userMessage: ChatMessage = {
       id: `msg-${messageIdCounter++}`,
       role: 'user',
       content,
+      photoDataUri,
     };
 
-    setMessages((prev) => [...prev, newUserMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setIsBotReplying(true);
 
     try {
-      const data = await callAnalyzeAPI(content);
+      const data = await analyzeViaAPI(content);
 
       const botMessage: ChatMessage = {
         id: `msg-${messageIdCounter++}`,
         role: 'model',
-        content:
-          data.recommendation ||
-          data.message ||
-          'Analysis completed.',
+        content: data.recommendation || 'Analysis completed.',
       };
 
       setMessages((prev) => [...prev, botMessage]);
