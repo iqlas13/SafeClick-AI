@@ -8,7 +8,7 @@ It combines **advanced AI-driven analysis** with **rule-based fallback security 
 
 ## 🌐 Live Demo
 
-👉 https://safeclick-8xvlnlgmc-iqlas-projects-b67f9d28.vercel.app/
+👉 https://safeclick-fhowzi767-iqlas-projects-b67f9d28.vercel.app
 
 ---
 
