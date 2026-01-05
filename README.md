@@ -1,59 +1,117 @@
-# 🔐 SafeClick AI
+🔐 SafeClick AI
 
-**SafeClick AI** is an **AI-powered cybersecurity assistant** designed to help users detect **phishing links, scam emails, suspicious messages, and malicious QR codes** before they click or scan.
+SafeClick AI is an AI-powered cybersecurity assistant designed to help users detect phishing links, scam emails, suspicious messages, and malicious QR codes before they click or scan.
 
-It combines **advanced AI-driven analysis** with **rule-based fallback security checks** to ensure reliable, fast, and privacy-focused threat detection for everyday internet use.
+It combines advanced AI-driven threat analysis with rule-based fallback security checks to provide fast, reliable, and privacy-focused protection for everyday internet usage.
 
----
+🌐 Live Demo
 
-## 🌐 Live Demo
+👉 Web App:
+https://safeclick-fhowzi767-iqlas-projects-b67f9d28.vercel.app
 
-👉 https://safeclick-fhowzi767-iqlas-projects-b67f9d28.vercel.app
+🎥 Demo Video:
+https://drive.google.com/file/d/1Hzus_GYYDMvEz_rO25cbpmwRozYXEzhT/view?usp=drivesdk
 
----
+🚀 Features
+🔍 URL Safety Analysis
 
-## 🚀 Features
+Detects phishing, scam, and unsafe links
 
-### 🔍 URL Safety Analysis
-- Detects phishing, scam, and unsafe links  
-- Identifies HTTP vs HTTPS security risks  
-- Flags suspicious keywords, long URLs, and IP-based domains  
+Identifies HTTP vs HTTPS security risks
 
-### 📧 Email Scam Detection
-- Analyzes email content for phishing patterns  
-- Detects urgency-based and social engineering attacks  
-- Helps prevent credential theft and financial fraud  
+Flags suspicious keywords, long URLs, and IP-based domains
 
-### 💬 Message Risk Analysis
-- Scans SMS and chat messages for malicious intent  
-- Identifies unsafe or shortened links inside messages  
+📧 Email Scam Detection
 
-### 📷 QR Code Safety Scan
-- Scans QR codes and extracts embedded URLs  
-- Analyzes whether the destination is genuine or malicious  
-- Protects users from QR-based phishing attacks (Quishing)  
+Analyzes email content for phishing indicators
 
-### 🤖 AI + Fallback Protection
-- Uses AI-powered analysis (Google Gemini) when available  
-- Automatically switches to rule-based analysis if AI is unavailable  
-- Ensures consistent protection at all times  
+Detects urgency-based and social engineering attacks
 
-### 🔒 Secure & Privacy-Focused
-- No user data is stored  
-- Deployed securely with HTTPS on Vercel  
-- Designed using security-first principles  
+Helps prevent credential theft and financial fraud
 
----
+💬 Message Risk Analysis
 
-## 🛠️ Tech Stack
+Scans SMS and chat messages for malicious intent
 
-- **Frontend:** Next.js (App Router), TypeScript, Tailwind CSS  
-- **Backend:** Next.js API Routes / Server Actions  
-- **AI Engine:** Google Gemini API  
-- **Authentication:** Firebase Authentication  
-- **Deployment:** Vercel  
+Identifies unsafe, shortened, or hidden links
 
----
+📷 QR Code Safety Scan
+
+Scans QR codes and extracts embedded URLs
+
+Analyzes destination safety before opening
+
+Protects against QR-based phishing attacks (Quishing)
+
+🤖 AI + Fallback Protection
+
+Uses Google Gemini AI for intelligent threat analysis
+
+Automatically switches to rule-based detection if AI is unavailable
+
+Ensures consistent protection at all times
+
+🔒 Secure & Privacy-Focused
+
+No user data is stored or logged
+
+Secure HTTPS deployment on Vercel
+
+Built with security-first design principles
+
+🛠️ Tech Stack
+Frontend
+
+Next.js (App Router)
+
+TypeScript
+
+Tailwind CSS
+
+Backend
+
+Next.js API Routes / Server Actions
+
+AI & Security
+
+Google Gemini API
+
+Rule-Based Threat Detection Engine
+
+Authentication
+
+Firebase Authentication
+
+Deployment
+
+Vercel
+
+🧠 How It Works
+
+User submits a URL, email, message, or QR code
+
+SafeClick AI performs:
+
+AI-based threat analysis (when available)
+
+Rule-based validation as a fallback
+
+The system returns a risk level with a clear safety recommendation
+
+Users stay protected before interacting with malicious content
+
+🎯 Use Cases
+
+Avoid phishing links and scam websites
+
+Detect fake emails and impersonation attempts
+
+Protect against SMS and chat scams
+
+Safely scan QR codes in public places
+
+Improve cybersecurity awareness for everyday users
+
 👥 Team Members / Authors
 
 Iqlas Tharannum
@@ -63,3 +121,19 @@ Azra Khan
 Zainab Mani
 
 Mohammed Adnan
+
+📌 Future Enhancements
+
+Browser extension support
+
+Real-time threat intelligence updates
+
+Multi-language support
+
+Enterprise security dashboard
+
+Mobile application integration
+
+⚠️ Disclaimer
+
+SafeClick AI provides preventive security assistance and does not guarantee 100% protection against all cyber threats. Users should continue following best cybersecurity practices.
